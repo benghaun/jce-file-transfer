@@ -4,6 +4,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Date;
 
 public class ClientWithoutSecurity {
 
@@ -61,7 +62,20 @@ public class ClientWithoutSecurity {
 			//verify server's identity using CA's public key
 			serverCert.checkValidity();
 			serverCert.verify(CAkey);
+			String[] certInfo = serverCert.getSubjectX500Principal().getName().split(",");
 
+			//handle case where certificates belonging to other people are sent instead of the server's cert
+			if (!certInfo[1].equals("CN=Beng Haun")){
+				System.out.println("Incorrect certificate, closing connection now");
+				clientSocket.close();
+				return;
+			}
+
+			//generate a nonce based on the current time
+			String dateTimeString = Long.toString(new Date().getTime());
+			byte[] nonceByte = dateTimeString.getBytes();
+
+			
 
 			System.out.println("Sending file...");
 			// Send the filename
