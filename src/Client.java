@@ -1,3 +1,4 @@
+import javax.crypto.Cipher;
 import java.io.*;
 import java.net.Socket;
 import java.security.PublicKey;
@@ -6,7 +7,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Date;
 
-public class ClientWithoutSecurity {
+public class Client {
 
 	public static void main(String[] args) {
 
@@ -67,15 +68,41 @@ public class ClientWithoutSecurity {
 			//handle case where certificates belonging to other people are sent instead of the server's cert
 			if (!certInfo[1].equals("CN=Beng Haun")){
 				System.out.println("Incorrect certificate, closing connection now");
-				clientSocket.close();
+				toServer.writeInt(2);
 				return;
 			}
 
-			//generate a nonce based on the current time
+			System.out.println("Certificate verified");
+
+			System.out.println("Sending nonce..");
+			//generate a nonce based on the current date and time
 			String dateTimeString = Long.toString(new Date().getTime());
 			byte[] nonceByte = dateTimeString.getBytes();
 
-			
+			//send the nonce to the server as a challenge
+			toServer.writeInt(4);
+			toServer.writeInt(nonceByte.length);
+			toServer.write(nonceByte);
+
+			//wait for the response, which will be the same nonce encrypted using the server's private key
+			numBytes = fromServer.readInt();
+			byte[] encryptedNonce = new byte[numBytes];
+			fromServer.read(encryptedNonce);
+
+			//decrypt the nonce using the server's public key obtained from the certificate and verify that it matches the original nonce
+			Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+			rsaCipher.init(Cipher.DECRYPT_MODE,serverCert.getPublicKey());
+			byte[] decryptedNonce = rsaCipher.doFinal(encryptedNonce);
+			String decryptedNonceString = new String(decryptedNonce);
+
+			if (!decryptedNonceString.equals(dateTimeString)){
+				System.out.println("Incorrect nonce, closing connection now");
+				toServer.writeInt(2);
+				return;
+			}
+
+			System.out.println("Nonce verified");
+
 
 			System.out.println("Sending file...");
 			// Send the filename

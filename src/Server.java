@@ -1,9 +1,14 @@
+import javax.crypto.Cipher;
+import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
 
-public class ServerWithoutSecurity {
+public class Server {
 
 	public static void main(String[] args) throws IOException {
 
@@ -45,6 +50,7 @@ public class ServerWithoutSecurity {
 						bufferedFileOutputStream.write(block, 0, numBytes);
 					}
 
+				// Packet for connection closing
 				} else if (packetType == 2) {
 					System.out.println("Closing connection...");
 					if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
@@ -53,6 +59,8 @@ public class ServerWithoutSecurity {
 					toClient.close();
 					connectionSocket.close();
 				}
+
+				// Packet which is requesting for certificate
 				else if (packetType == 3){
 					System.out.println("Sending certificate...");
 					FileInputStream fileInputStream = new FileInputStream("server.crt");
@@ -69,6 +77,37 @@ public class ServerWithoutSecurity {
 					toClient.writeInt(-1);
 					bufferedFileInputStream.close();
 					fileInputStream.close();
+				}
+
+				// Packet sending nonce
+				else if (packetType == 4){
+					System.out.println("Reading nonce..");
+					//first read the nonce
+					int numBytes = fromClient.readInt();
+					byte[] nonce = new byte[numBytes];
+					fromClient.read(nonce);
+
+					//encrypt the nonce using server's private key
+					File privateKeyFile = new File("privateServer.pem");
+					FileInputStream fis = new FileInputStream(privateKeyFile);
+					DataInputStream dis = new DataInputStream(fis);
+					byte[] privateKeyBytes = new byte[(int) privateKeyFile.length()];
+					dis.readFully(privateKeyBytes);
+					dis.close();
+					String privateKeyString = new String(privateKeyBytes);
+					String[] parts = privateKeyString.split("-----");
+					byte[] privateKeyb64 = DatatypeConverter.parseBase64Binary(parts[parts.length / 2]);
+					PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(privateKeyb64);
+					KeyFactory kf = KeyFactory.getInstance("RSA");
+					PrivateKey privateKey = kf.generatePrivate(spec);
+					Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					rsaCipher.init(Cipher.ENCRYPT_MODE,privateKey);
+					byte[] encryptedNonce = rsaCipher.doFinal(nonce);
+
+					//send the encrypted nonce back to client
+					toClient.writeInt(encryptedNonce.length);
+					toClient.write(encryptedNonce);
+
 				}
 
 			}
