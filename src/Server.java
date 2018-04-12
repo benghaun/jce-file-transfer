@@ -65,6 +65,7 @@ public class Server {
 					System.out.println("length: "+block.length);
 					//create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
 					Cipher CP1dcipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					System.out.println(privateKey);
 					CP1dcipher.init(Cipher.DECRYPT_MODE, privateKey);
 
 					byte[] CP1decryptedBlock=CP1dcipher.doFinal(block);
@@ -167,6 +168,9 @@ public class Server {
 		} catch (Exception e) {e.printStackTrace();}
 
 	}
+
+
+
 
 
 
