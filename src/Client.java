@@ -11,7 +11,7 @@ public class Client {
 
 	public static void main(String[] args) {
 
-    	String filename = "rr.txt";
+    	String filename = "C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\rr.txt";
 
 		int numBytes = 0;
 
@@ -40,7 +40,7 @@ public class Client {
 			System.out.println("Requesting for server's certificate..");
 			toServer.writeInt(3);
 			int certSize;
-			FileOutputStream fileOutputStream = new FileOutputStream("recv/server.crt");
+			FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\recv\\server.crt");
 			BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 			while ((numBytes = fromServer.readInt()) != -1){
 				byte[] cert = new byte[numBytes];
@@ -50,13 +50,13 @@ public class Client {
 			bufferedFileOutputStream.close();
 
 			//open the certificate
-			InputStream certStream = new FileInputStream("recv/server.crt");
+			InputStream certStream = new FileInputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\recv\\server.crt");
 			CertificateFactory cf = CertificateFactory.getInstance("X.509");
 			X509Certificate serverCert = (X509Certificate) cf.generateCertificate(certStream);
 			certStream.close();
 
 			//get CA's public key
-			InputStream CAcertStream = new FileInputStream("CA.crt");
+			InputStream CAcertStream = new FileInputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\CA.crt");
 			X509Certificate CAcert = (X509Certificate) cf.generateCertificate(CAcertStream);
 			PublicKey CAkey = CAcert.getPublicKey();
 
@@ -117,17 +117,35 @@ public class Client {
 
 	        byte [] fromFileBuffer = new byte[117];
 
-	        // Send the file
+	        // Send encrypted file
 	        for (boolean fileEnded = false; !fileEnded;) {
-				numBytes = bufferedFileInputStream.read(fromFileBuffer);
+				numBytes = bufferedFileInputStream.read(fromFileBuffer); //read 117bytes
+
+				//Configure cipher object, intiializee using server public key, CAkey
+				Cipher BobRSACipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+				BobRSACipher.init(Cipher.ENCRYPT_MODE,CAkey);
+				byte[] encryptedCP1File = BobRSACipher.doFinal(fromFileBuffer);
+
+				System.out.println(Arrays.toString(encryptedCP1File));
+				System.out.println("length: "+encryptedCP1File.length);
+
 				fileEnded = numBytes < fromFileBuffer.length;
 				toServer.writeInt(1);
+				toServer.writeInt(encryptedCP1File.length);
 				toServer.writeInt(numBytes);
-				toServer.write(fromFileBuffer,0,numBytes);
+				//toServer.write(encryptedCP1File,0,encryptedCP1File.length);
+				toServer.write(encryptedCP1File);
 				toServer.flush();
-			}
 
-	        bufferedFileInputStream.close();
+			}
+			//Await confirmation from Server
+			//if(input.readLine().contains("File Uploaded")){
+
+			System.out.println("File Sent, End of CP1");
+			//}
+
+
+			bufferedFileInputStream.close();
 	        fileInputStream.close();
 
 
