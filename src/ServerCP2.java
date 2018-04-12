@@ -1,5 +1,8 @@
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.transform.SourceLocator;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,7 +12,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class Server {
+public class ServerCP2 {
 
 	public static void main(String[] args) throws IOException {
 
@@ -21,6 +24,7 @@ public class Server {
 		FileOutputStream fileOutputStream = null;
 		BufferedOutputStream bufferedFileOutputStream = null;
 		PrivateKey privateKey=null;
+		SecretKey AESKey=null;
 		try {
 			welcomeSocket = new ServerSocket(4321);
 			System.out.println("Waiting for connection...");
@@ -54,6 +58,7 @@ public class Server {
 				// Packet for connection closing
 				}
 				else if(packetType==1){
+					System.out.println("Receiving file****************");
 					int numBytes = fromClient.readInt();
 					int decrypByte=fromClient.readInt();
 					System.out.println("numbyte "+numBytes);
@@ -64,44 +69,32 @@ public class Server {
 					System.out.println(Arrays.toString(block));
 					System.out.println("length: "+block.length);
 					//create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
-					Cipher CP1dcipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					System.out.println(privateKey);
-					CP1dcipher.init(Cipher.DECRYPT_MODE, privateKey);
+					Cipher CP2dcipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+					CP2dcipher.init(Cipher.DECRYPT_MODE, AESKey);
 
-					byte[] CP1decryptedBlock=CP1dcipher.doFinal(block);
+					byte[] CP2decryptedBlock= CP2dcipher.doFinal(block);
 
 
 					if(numBytes>0){
-						bufferedFileOutputStream.write(CP1decryptedBlock, 0, CP1decryptedBlock.length);
+						bufferedFileOutputStream.write(CP2decryptedBlock, 0, CP2decryptedBlock.length);
 
 					}
 				}
 				else if(packetType==6){
+					//Decrypt encrypedAESkey
 					int numBytes = fromClient.readInt();
+					System.out.println("Numbytes "+numBytes);
 					byte [] block = new byte[numBytes];
 					fromClient.read(block);
+					System.out.println("EncryptedAESkey "+Arrays.toString(block));
 
-					//****************************************************************************************************
-
-
-
-					Cipher CP2dcipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-					CP2dcipher.init(Cipher.DECRYPT_MODE, privateKey);
-					byte[] CP2decryptedBlock= CP2dcipher.doFinal(block);
-					if(numBytes>0){
-						bufferedFileOutputStream.write(CP2decryptedBlock, 0, numBytes);
-
-					}
-
+					//cr8 RSA Cipher object to decrypt AES key
+					Cipher rsaCipherDecrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					rsaCipherDecrypt.init(Cipher.DECRYPT_MODE,privateKey);
+					byte[] AeskeyByteFormat=rsaCipherDecrypt.doFinal(block);
+					AESKey=new SecretKeySpec(AeskeyByteFormat,0,AeskeyByteFormat.length,"AES");
+					System.out.println("AES key Decrypted");
 				}
-
-
-
-
-
-
-
-
 
 
 				else if (packetType == 2) {
