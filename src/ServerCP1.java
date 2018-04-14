@@ -39,7 +39,7 @@ public class ServerCP1 {
 					int numBytes = fromClient.readInt();
 					byte [] filename = new byte[numBytes];
 					fromClient.read(filename);
-					fileOutputStream = new FileOutputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\recv\\rr.txt");
+					fileOutputStream = new FileOutputStream("recv\\rr.txt");
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
 				// If the packet is for transferring a chunk of the file
@@ -56,16 +56,10 @@ public class ServerCP1 {
 				else if(packetType==1){
 					int numBytes = fromClient.readInt();
 					int decrypByte=fromClient.readInt();
-					System.out.println("numbyte "+numBytes);
-					System.out.println("decryptByte "+decrypByte);
 					byte [] block = new byte[numBytes];
 					fromClient.read(block);
-
-					System.out.println(Arrays.toString(block));
-					System.out.println("length: "+block.length);
 					//create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
 					Cipher CP1dcipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					System.out.println(privateKey);
 					CP1dcipher.init(Cipher.DECRYPT_MODE, privateKey);
 
 					byte[] CP1decryptedBlock=CP1dcipher.doFinal(block);
@@ -73,7 +67,7 @@ public class ServerCP1 {
 
 					if(numBytes>0){
 						bufferedFileOutputStream.write(CP1decryptedBlock, 0, CP1decryptedBlock.length);
-
+						toClient.writeInt(2);
 					}
 				}
 				else if(packetType==6){
@@ -116,7 +110,7 @@ public class ServerCP1 {
 				// Packet which is requesting for certificate
 				else if (packetType == 3){
 					System.out.println("Sending certificate...");
-					FileInputStream fileInputStream = new FileInputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\server.crt");
+					FileInputStream fileInputStream = new FileInputStream("server.crt");
 					BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 					byte [] fromFileBuffer = new byte[117];
 					// Send the certificate
@@ -141,7 +135,7 @@ public class ServerCP1 {
 					fromClient.read(nonce);
 
 					//encrypt the nonce using server's private key
-					File privateKeyFile = new File("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\privateServer.pem");
+					File privateKeyFile = new File("privateServer.pem");
 					FileInputStream fis = new FileInputStream(privateKeyFile);
 					DataInputStream dis = new DataInputStream(fis);
 					byte[] privateKeyBytes = new byte[(int) privateKeyFile.length()];

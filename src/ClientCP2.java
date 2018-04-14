@@ -13,7 +13,7 @@ public class ClientCP2 {
 
 	public static void main(String[] args) {
 
-    	String filename = "C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\rr.txt";
+    	String filename = "rr.txt";
 
 		int numBytes = 0;
 
@@ -41,8 +41,7 @@ public class ClientCP2 {
 			//packet type of 3 represents a request for the certificate
 			System.out.println("Requesting for server's certificate..");
 			toServer.writeInt(3);
-			int certSize;
-			FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\recv\\server.crt");
+			FileOutputStream fileOutputStream = new FileOutputStream("recv\\server.crt");
 			BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 			while ((numBytes = fromServer.readInt()) != -1){
 				byte[] cert = new byte[numBytes];
@@ -52,13 +51,13 @@ public class ClientCP2 {
 			bufferedFileOutputStream.close();
 
 			//open the certificate
-			InputStream certStream = new FileInputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\recv\\server.crt");
+			InputStream certStream = new FileInputStream("recv\\server.crt");
 			CertificateFactory cf = CertificateFactory.getInstance("X.509");
 			X509Certificate serverCert = (X509Certificate) cf.generateCertificate(certStream);
 			certStream.close();
 
 			//get CA's public key
-			InputStream CAcertStream = new FileInputStream("C:\\Users\\lowka\\Documents\\GitHub\\jce-file-transfer\\CA.crt");
+			InputStream CAcertStream = new FileInputStream("CA.crt");
 			X509Certificate CAcert = (X509Certificate) cf.generateCertificate(CAcertStream);
 			PublicKey CAkey = CAcert.getPublicKey();
 			PublicKey kwserverKey = serverCert.getPublicKey();
@@ -107,7 +106,7 @@ public class ClientCP2 {
 			System.out.println("Nonce verified");
 
 
-			System.out.println("Sending file...");
+			System.out.println("Sending filename...");
 			// Send the filename
 			toServer.writeInt(0);
 			toServer.writeInt(filename.getBytes().length);
@@ -125,32 +124,30 @@ public class ClientCP2 {
 			Cipher rsaCipherEncrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 			rsaCipherEncrypt.init(Cipher.ENCRYPT_MODE,kwserverKey);
 
+			System.out.println("Generating AES key...");
+			//Generate AES key
+			KeyGenerator AESkeyGenerator = KeyGenerator.getInstance("AES");
+			AESkeyGenerator.init(128);
+			SecretKey AESkey=AESkeyGenerator.generateKey();
 
-				//Generate AES key
-				KeyGenerator AESkeyGenerator = KeyGenerator.getInstance("AES");
-				AESkeyGenerator.init(128);
-				SecretKey AESkey=AESkeyGenerator.generateKey();
-
-				//Convery AES to byte[]
-				byte[] AESKeybyteformat=AESkey.getEncoded();
-				byte[] encryptedAESKeybyteformat=rsaCipherEncrypt.doFinal(AESKeybyteformat);
+			//Convery AES to byte[]
+			byte[] AESKeybyteformat=AESkey.getEncoded();
+			byte[] encryptedAESKeybyteformat=rsaCipherEncrypt.doFinal(AESKeybyteformat);
 
 
-				System.out.println(Arrays.toString(encryptedAESKeybyteformat));
-				System.out.println(encryptedAESKeybyteformat.length);
 			//send encrypted AES key
+			System.out.println("Sending AES key...");
 			toServer.writeInt(6);
 			toServer.writeInt(encryptedAESKeybyteformat.length);
 			//toServer.write(encryptedAESKeybyteformat);
 			toServer.write(encryptedAESKeybyteformat,0,encryptedAESKeybyteformat.length);
 			toServer.flush();
-			System.out.println("Send AES key");
+
 
 			//***********************Encrypt & Send File************************************************************
-
+			System.out.println("Sending file...");
 			for (boolean fileEnded = false; !fileEnded;) {
 				numBytes = bufferedFileInputStream.read(fromFileBuffer); //read 117 bytes
-				System.out.println("NumbBytes: "+numBytes);
 				fileEnded = numBytes < fromFileBuffer.length;  //************************************************************
 				if(numBytes<117 && numBytes>0){
 					byte[] temp =new byte[numBytes];
@@ -162,7 +159,6 @@ public class ClientCP2 {
 				Cipher CP2cipher=Cipher.getInstance("AES/ECB/PKCS5Padding");
 				CP2cipher.init(Cipher.ENCRYPT_MODE,AESkey);
 				byte[] encryptedCP2File=CP2cipher.doFinal(fromFileBuffer);
-				System.out.println(Arrays.toString(encryptedCP2File));
 
 				//Send encrypted file
 				toServer.writeInt(1);
@@ -177,11 +173,8 @@ public class ClientCP2 {
 
 
 
-		//Await confirmation from Server
-			//if(input.readLine().contains("File Uploaded")){
 
 			System.out.println("File Sent, End of CP1");
-			//}
 
 
 			bufferedFileInputStream.close();
