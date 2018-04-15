@@ -12,19 +12,14 @@ import java.util.Date;
 public class ClientCP2 {
 
 	public static void main(String[] args) {
-
-    	String filename = "rr.txt";
-
+        //String filename = "kwtest.txt";
+        String filename = "rr.txt";
 		int numBytes = 0;
-
 		Socket clientSocket = null;
-
         DataOutputStream toServer = null;
         DataInputStream fromServer = null;
-
     	FileInputStream fileInputStream = null;
         BufferedInputStream bufferedFileInputStream = null;
-
 		long timeStarted = System.nanoTime();
 
 		try {
@@ -106,12 +101,7 @@ public class ClientCP2 {
 			System.out.println("Nonce verified");
 
 
-			System.out.println("Sending filename...");
-			// Send the filename
-			toServer.writeInt(0);
-			toServer.writeInt(filename.getBytes().length);
-			toServer.write(filename.getBytes());
-			toServer.flush();
+
 
 			// Open the file
 			fileInputStream = new FileInputStream(filename);
@@ -123,7 +113,6 @@ public class ClientCP2 {
 	        //Initiate Ciphher object for key encryption, using encrypt mode and server's public key
 			Cipher rsaCipherEncrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 			rsaCipherEncrypt.init(Cipher.ENCRYPT_MODE,kwserverKey);
-
 			System.out.println("Generating AES key...");
 			//Generate AES key
 			KeyGenerator AESkeyGenerator = KeyGenerator.getInstance("AES");
@@ -145,6 +134,22 @@ public class ClientCP2 {
 
 
 			//***********************Encrypt & Send File************************************************************
+
+
+			//Send filename
+			System.out.println("Sending filename...");
+			//Encrypt Filename
+			Cipher Filecipher=Cipher.getInstance("AES/ECB/PKCS5Padding");
+			Filecipher.init(Cipher.ENCRYPT_MODE,AESkey);
+			byte[] encryptedFilename=Filecipher.doFinal(filename.getBytes());
+			// Send the filename
+			toServer.writeInt(0);
+			toServer.writeInt(encryptedFilename.length);
+			//toServer.write(filename.getBytes());
+			toServer.write(encryptedFilename,0,encryptedFilename.length);
+			toServer.flush();
+
+
 			System.out.println("Sending file...");
 			for (boolean fileEnded = false; !fileEnded;) {
 				numBytes = bufferedFileInputStream.read(fromFileBuffer); //read 117 bytes
@@ -167,16 +172,9 @@ public class ClientCP2 {
 				toServer.write(encryptedCP2File,0,encryptedCP2File.length);
 				//toServer.write(encryptedCP1File);    -> BUG**********************
 				toServer.flush();
-
-
 			}
 
-
-
-
 			System.out.println("File Sent, End of CP1");
-
-
 			bufferedFileInputStream.close();
 	        fileInputStream.close();
 

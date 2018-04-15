@@ -37,25 +37,26 @@ public class ServerCP2 {
 				int packetType = fromClient.readInt();
 				// If the packet is for transferring the filename
 				if (packetType == 0) {
-
 					System.out.println("Receiving file...");
 
 					int numBytes = fromClient.readInt();
 					byte [] filename = new byte[numBytes];
 					fromClient.read(filename);
-					fileOutputStream = new FileOutputStream("recv\\rr.txt");
+
+					//create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
+					Cipher Filedcipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+					Filedcipher.init(Cipher.DECRYPT_MODE, AESKey);
+					byte DecryptedFileName[]= Filedcipher.doFinal(filename);
+					String result=new String(DecryptedFileName);
+					//System.out.println("kw: "+result);
+					fileOutputStream = new FileOutputStream("recv\\"+result);
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-				// If the packet is for transferring a chunk of the file
-				} else if (packetType == 5) {
-					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.read(block);
-					if (numBytes > 0) {
-						bufferedFileOutputStream.write(block, 0, numBytes);
-					}
 
-				// Packet for connection closing
+
+
+
+				// If the packet is for transferring a chunk of the file
 				}
 				else if(packetType==1){
 					int numBytes = fromClient.readInt();
@@ -75,8 +76,7 @@ public class ServerCP2 {
 
 					}
 				}
-				else if(packetType==6){
-					//Decrypt encrypedAESkey
+				else if(packetType==6){//Decrypt encrypedAESkey
 					System.out.println("Decrypting AES key...");
 					int numBytes = fromClient.readInt();
 					byte [] block = new byte[numBytes];
@@ -158,16 +158,6 @@ public class ServerCP2 {
 
 
 
-
-
-
-	public static byte[] decryptCP2(byte[] data, Cipher cipher) throws Exception{
-
-
-
-		byte[] decryptedBytes=cipher.doFinal(data);
-		return decryptedBytes;
-	}
 
 
 }

@@ -33,26 +33,21 @@ public class ServerCP1 {
 				int packetType = fromClient.readInt();
 				// If the packet is for transferring the filename
 				if (packetType == 0) {
-
 					System.out.println("Receiving file...");
-
 					int numBytes = fromClient.readInt();
 					byte [] filename = new byte[numBytes];
 					fromClient.read(filename);
-					fileOutputStream = new FileOutputStream("recv\\rr.txt");
+                    //create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
+                    Cipher Filedcipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                    Filedcipher.init(Cipher.DECRYPT_MODE, privateKey);
+                    byte DecryptedFileName[]= Filedcipher.doFinal(filename);
+                    String result=new String(DecryptedFileName);
+                    fileOutputStream = new FileOutputStream("recv\\"+result);
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-				// If the packet is for transferring a chunk of the file
-				} else if (packetType == 5) {
-					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.read(block);
-					if (numBytes > 0) {
-						bufferedFileOutputStream.write(block, 0, numBytes);
-					}
-
-				// Packet for connection closing
 				}
+				// If the packet is for transferring a chunk of the file
+
 				else if(packetType==1){
 					int numBytes = fromClient.readInt();
 					int decrypByte=fromClient.readInt();
@@ -64,38 +59,11 @@ public class ServerCP1 {
 
 					byte[] CP1decryptedBlock=CP1dcipher.doFinal(block);
 
-
 					if(numBytes>0){
 						bufferedFileOutputStream.write(CP1decryptedBlock, 0, CP1decryptedBlock.length);
 						toClient.writeInt(2);
 					}
 				}
-				else if(packetType==6){
-					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.read(block);
-
-					//****************************************************************************************************
-
-
-
-					Cipher CP2dcipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-					CP2dcipher.init(Cipher.DECRYPT_MODE, privateKey);
-					byte[] CP2decryptedBlock= CP2dcipher.doFinal(block);
-					if(numBytes>0){
-						bufferedFileOutputStream.write(CP2decryptedBlock, 0, numBytes);
-
-					}
-
-				}
-
-
-
-
-
-
-
-
 
 
 				else if (packetType == 2) {
@@ -163,19 +131,6 @@ public class ServerCP1 {
 
 	}
 
-
-
-
-
-
-
-	public static byte[] decryptCP2(byte[] data, Cipher cipher) throws Exception{
-
-
-
-		byte[] decryptedBytes=cipher.doFinal(data);
-		return decryptedBytes;
-	}
 
 
 }

@@ -10,19 +10,14 @@ import java.util.Date;
 public class ClientCP1 {
 
 	public static void main(String[] args) {
-
+        //String filename = "kwtest.txt";
     	String filename = "rr.txt";
-
 		int numBytes = 0;
-
 		Socket clientSocket = null;
-
         DataOutputStream toServer = null;
         DataInputStream fromServer = null;
-
     	FileInputStream fileInputStream = null;
         BufferedInputStream bufferedFileInputStream = null;
-
 		long timeStarted = System.nanoTime();
 
 		try {
@@ -74,7 +69,6 @@ public class ClientCP1 {
 			}
 
 			System.out.println("Certificate verified");
-
 			System.out.println("Sending nonce..");
 			//generate a nonce based on the current date and time
 			String dateTimeString = Long.toString(new Date().getTime());
@@ -105,13 +99,22 @@ public class ClientCP1 {
 			System.out.println("Nonce verified");
 
 
-			System.out.println("Sending file...");
+            System.out.println("Sending File name");
+			//Encrypt file name and send
+            Cipher CipherFile = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            CipherFile.init(Cipher.ENCRYPT_MODE,serverKey);
+            byte[] encryptedFilename = CipherFile.doFinal(filename.getBytes());
+
 			// Send the filename
 			toServer.writeInt(0);
-			toServer.writeInt(filename.getBytes().length);
-			toServer.write(filename.getBytes());
+			toServer.writeInt(encryptedFilename.length);
+			//toServer.write(filename.getBytes());
+            toServer.write(encryptedFilename,0,encryptedFilename.length);
 			toServer.flush();
 
+
+
+            System.out.println("Sending file...");
 			// Open the file
 			fileInputStream = new FileInputStream(filename);
 			bufferedFileInputStream = new BufferedInputStream(fileInputStream);
@@ -127,7 +130,7 @@ public class ClientCP1 {
 					System.arraycopy(fromFileBuffer,0,temp,0,numBytes);
 					fromFileBuffer = temp;
 				}
-				//Configure cipher object, intiialize using server public key, CAkey
+				//Configure cipher object, intiialize using server public key, serverKey
 				Cipher BobRSACipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 				BobRSACipher.init(Cipher.ENCRYPT_MODE,serverKey);
 				byte[] encryptedCP1File = BobRSACipher.doFinal(fromFileBuffer);
