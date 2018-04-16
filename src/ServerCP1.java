@@ -53,7 +53,7 @@ public class ServerCP1 {
 					int decrypByte=fromClient.readInt();
 					byte [] block = new byte[numBytes];
 					fromClient.read(block);
-					//create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
+					//create cipher object, initialize the ciphers with the given key, choose decryption mode as RSA
 					Cipher CP1dcipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 					CP1dcipher.init(Cipher.DECRYPT_MODE, privateKey);
 
@@ -65,7 +65,7 @@ public class ServerCP1 {
 					}
 				}
 
-
+				//packet for connection closing
 				else if (packetType == 2) {
 					System.out.println("Closing connection...");
 					if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();

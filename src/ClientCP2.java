@@ -12,8 +12,8 @@ import java.util.Date;
 public class ClientCP2 {
 
 	public static void main(String[] args) {
-        //String filename = "kwtest.txt";
-        String filename = "rr.txt";
+        String filename = "kwtest.txt";
+//        String filename = "rr.txt";
 		int numBytes = 0;
 		Socket clientSocket = null;
         DataOutputStream toServer = null;

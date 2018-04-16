@@ -51,20 +51,15 @@ public class ServerCP2 {
 					//System.out.println("kw: "+result);
 					fileOutputStream = new FileOutputStream("recv\\"+result);
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-
-
-
-
-
-				// If the packet is for transferring a chunk of the file
 				}
+				// If the packet is for transferring a chunk of the file
 				else if(packetType==1){
 					int numBytes = fromClient.readInt();
 					int decrypByte=fromClient.readInt();
 					byte [] block = new byte[numBytes];
 					fromClient.read(block);
 
-					//create cipher object, initialize the ciphers with the given key, choose decryption mode as DES
+					//create cipher object, initialize the ciphers with the given key, choose decryption mode as RSA
 					Cipher CP2dcipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
 					CP2dcipher.init(Cipher.DECRYPT_MODE, AESKey);
 
@@ -73,24 +68,10 @@ public class ServerCP2 {
 
 					if(numBytes>0){
 						bufferedFileOutputStream.write(CP2decryptedBlock, 0, CP2decryptedBlock.length);
-
 					}
 				}
-				else if(packetType==6){//Decrypt encrypedAESkey
-					System.out.println("Decrypting AES key...");
-					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.read(block);
 
-					//cr8 RSA Cipher object to decrypt AES key
-					Cipher rsaCipherDecrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					rsaCipherDecrypt.init(Cipher.DECRYPT_MODE,privateKey);
-					byte[] AeskeyByteFormat=rsaCipherDecrypt.doFinal(block);
-					AESKey=new SecretKeySpec(AeskeyByteFormat,0,AeskeyByteFormat.length,"AES");
-					System.out.println("AES key Decrypted");
-				}
-
-
+				//Packet for closing connection
 				else if (packetType == 2) {
 					System.out.println("Closing connection...");
 					if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
@@ -148,6 +129,21 @@ public class ServerCP2 {
 					toClient.writeInt(encryptedNonce.length);
 					toClient.write(encryptedNonce);
 
+				}
+
+				// Packet for decrypting AES key sent by client
+				else if(packetType==6){
+					System.out.println("Decrypting AES key...");
+					int numBytes = fromClient.readInt();
+					byte [] block = new byte[numBytes];
+					fromClient.read(block);
+
+					//cr8 RSA Cipher object to decrypt AES key
+					Cipher rsaCipherDecrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					rsaCipherDecrypt.init(Cipher.DECRYPT_MODE,privateKey);
+					byte[] AeskeyByteFormat=rsaCipherDecrypt.doFinal(block);
+					AESKey=new SecretKeySpec(AeskeyByteFormat,0,AeskeyByteFormat.length,"AES");
+					System.out.println("AES key Decrypted");
 				}
 
 			}
